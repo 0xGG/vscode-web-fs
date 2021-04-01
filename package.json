@@ -1,8 +1,9 @@
 {
-  "name": "native-file-system",
-  "displayName": "Native File System",
+  "name": "vscode-native-file-system",
+  "displayName": "VS Code Native File System",
   "description": "Add Native File System support to Visual Studio Code",
   "version": "0.0.1",
+  "publisher": "shd101wyy",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -14,6 +15,7 @@
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/extension.js",
+  "enableProposedApi": true,
   "contributes": {
     "commands": [
       {

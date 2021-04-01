@@ -1,6 +1,5 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { basename } from "path";
 import * as vscode from "vscode";
 import { NativeFS } from "./fileSystemProvider";
 
@@ -9,8 +8,6 @@ import { NativeFS } from "./fileSystemProvider";
 export function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  console.log('Extension "native-file-system" is now active!');
-
   const nativeFs = new NativeFS();
   context.subscriptions.push(
     vscode.workspace.registerFileSystemProvider("nativefs", nativeFs, {
@@ -24,17 +21,15 @@ export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand(
     "native-file-system.openDirectory",
     async () => {
-      if (
-        typeof process === "undefined" &&
-        typeof showDirectoryPicker !== "undefined"
-      ) {
-        const directoryHandle = await showDirectoryPicker();
+      try {
+        const directoryHandle = await window.showDirectoryPicker();
         const dirPath = await nativeFs.attachDirectory(directoryHandle);
         vscode.workspace.updateWorkspaceFolders(0, 0, {
           uri: vscode.Uri.parse(`nativefs:${dirPath}`),
-          name: basename(dirPath),
+          name: (dirPath.match(/(\|\/)(.+?)$/) || ["Unknown"])[0],
         });
-      } else {
+      } catch (error) {
+        console.error(error);
         vscode.window.showErrorMessage(
           "Your environment doesn't support the Native File System API"
         );
