@@ -133,6 +133,11 @@
   resolved "https://registry.npmjs.org/@types/vscode/-/vscode-1.55.0.tgz#58cfbebbd32b3e374e07e7858b1fd0e92b1a1d2b"
   integrity sha512-49hysH7jneTQoSC8TWbAi7nKK9Lc5osQNjmDHVosrcU8o3jecD9GrK0Qyul8q4aGPSXRfNGqIp9CBdb13akETg==
 
+"@types/wicg-file-system-access@^2020.9.1":
+  version "2020.9.1"
+  resolved "https://registry.npmjs.org/@types/wicg-file-system-access/-/wicg-file-system-access-2020.9.1.tgz#ae1f420b0ca70f545c8621a9b63ed29270ef724a"
+  integrity sha512-hEN/YpLwvDjhRJrKoBiyiKtIh2zNkmJ/GY9VWIXNgjy7TBZNM9upfb/rnWDGpOoLomnEQtlTBjFBFCDra1oxOQ==
+
 "@typescript-eslint/eslint-plugin@^4.14.1":
   version "4.20.0"
   resolved "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-4.20.0.tgz#9d8794bd99aad9153092ad13c96164e3082e9a92"
@@ -1558,6 +1563,11 @@ nanoid@3.1.20:
   version "3.1.20"
   resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.1.20.tgz#badc263c6b1dcf14b71efaa85f6ab4c1d6cfc788"
   integrity sha512-a1cQNyczgKbLX9jwbS/+d7W8fX/RfgYR7lVWwWOGIPNgK2m0MWvrGF6/m4kk6U3QcFMnZf3RIhL0v2Jgh/0Uxw==
+
+nanoid@^3.1.22:
+  version "3.1.22"
+  resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.1.22.tgz#b35f8fb7d151990a8aebd5aa5015c03cf726f844"
+  integrity sha512-/2ZUaJX2ANuLtTvqTlgqBQNJoQO398KyJgZloL0PZkC0dpysjncRUPsFe3DUPzz/y3h+u7C46np8RMuvF3jsSQ==
 
 natural-compare@^1.4.0:
   version "1.4.0"
