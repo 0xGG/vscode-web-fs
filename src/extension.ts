@@ -1,17 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { NativeFS } from "./fileSystemProvider";
+import { Provider } from "./fileSystemProvider";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  console.log("Activated vscode-native-file-system extension");
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  const nativeFs = new NativeFS();
+  const provider = new Provider();
   context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider("nativefs", nativeFs, {
+    vscode.workspace.registerFileSystemProvider("nativefs", provider, {
       isCaseSensitive: true,
+      isReadonly: false,
     })
   );
 
@@ -22,12 +24,21 @@ export function activate(context: vscode.ExtensionContext) {
     "native-file-system.openDirectory",
     async () => {
       try {
-        const directoryHandle = await window.showDirectoryPicker();
-        const dirPath = await nativeFs.attachDirectory(directoryHandle);
-        vscode.workspace.updateWorkspaceFolders(0, 0, {
-          uri: vscode.Uri.parse(`nativefs:${dirPath}`),
-          name: (dirPath.match(/(\|\/)(.+?)$/) || ["Unknown"])[0],
-        });
+        const directoryPath:
+          | string
+          | undefined = await vscode.commands.executeCommand(
+          "nativeFS.showDirectoryPicker"
+        );
+        vscode.workspace.updateWorkspaceFolders(
+          vscode.workspace.workspaceFolders
+            ? vscode.workspace.workspaceFolders.length
+            : 0,
+          null,
+          {
+            uri: vscode.Uri.parse(`nativefs:${directoryPath}`),
+            name: (directoryPath?.match(/(\|\/)(.+?)$/) || ["Unknown"])[0],
+          }
+        );
       } catch (error) {
         console.error(error);
         vscode.window.showErrorMessage(

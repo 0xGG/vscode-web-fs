@@ -3,119 +3,36 @@
  * Referred from https://github.com/microsoft/vscode-extension-samples/blob/main/fsprovider-sample/src/fileSystemProvider.ts
  */
 
-import { nanoid } from "nanoid";
 import * as vscode from "vscode";
 
-export async function verifyPermission(
-  fileHandle: FileSystemHandle,
-  mode?: FileSystemPermissionMode
-) {
-  const options: FileSystemHandlePermissionDescriptor = {
-    mode,
-  };
-  // Check if permission was already granted. If so, return true.
-  if ((await fileHandle.queryPermission(options)) === "granted") {
-    return true;
-  }
-
-  // Request permission. If the user grants permission, return true.
-  if ((await fileHandle.requestPermission(options)) === "granted") {
-    return true;
-  }
-  // The user didn't grant permission, so return false.
-  return false;
-}
-
-export class NativeFS implements vscode.FileSystemProvider {
-  /**
-   * Its key is in format of /$RANDOM_ID/$DIRECTORY_NAME
-   */
-  private directoryHandleMap: { [key: string]: FileSystemDirectoryHandle } = {};
-
-  // --- attach local directory
-  public async attachDirectory(
-    directoryHandle: FileSystemDirectoryHandle
-  ): Promise<string> {
-    const rootDir = "/" + nanoid(8) + "/" + directoryHandle.name + "/";
-    this.directoryHandleMap[rootDir] = directoryHandle;
-    return rootDir;
-  }
-
-  public async helper(
-    path: string,
-    mode: FileSystemPermissionMode = "readwrite"
-  ): Promise<[FileSystemDirectoryHandle, string[]]> {
-    const pathArr = path.replace(/\/+$/, "").split("/");
-    const rootDir = "/" + pathArr[1] + "/" + pathArr[2] + "/";
-    const directoryHandle = this.directoryHandleMap[rootDir];
-    await verifyPermission(directoryHandle, mode);
-    return [directoryHandle, pathArr.slice(3, pathArr.length)];
-  }
-
+export class Provider implements vscode.FileSystemProvider {
   // --- manage file metadata
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    if (!directoryHandle) {
+    console.log("* stat: ", uri);
+    const result:
+      | vscode.FileStat
+      | undefined = await vscode.commands.executeCommand("nativeFS.stat", uri);
+    if (!result) {
       throw vscode.FileSystemError.FileNotFound(uri);
-    }
-    let i = 0;
-    for (; i < pathArr.length - 1; i++) {
-      directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-    }
-    // Check if it's file
-    try {
-      const fHandle = await directoryHandle.getFileHandle(pathArr[i]);
-      const file = await fHandle.getFile(); // https://w3c.github.io/FileAPI/#dfn-file
-      const stat: vscode.FileStat = {
-        type: vscode.FileType.File,
-        ctime: file.lastModified, // <= This is now wrong
-        mtime: file.lastModified,
-        size: file.size,
-      };
-      return stat;
-    } catch (error) {
-      // Check if it's directory
-      try {
-        const dHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-        let size = 0;
-        for await (const entry of directoryHandle.values()) {
-          size += 1;
-        }
-
-        const stat: vscode.FileStat = {
-          type: vscode.FileType.Directory,
-          ctime: 0, // This is now wrong
-          mtime: 0, // This is now wrong
-          size,
-        };
-        return stat;
-      } catch (error) {
-        throw error;
-      }
+    } else {
+      return result;
     }
   }
 
   public async readDirectory(
     uri: vscode.Uri
   ): Promise<[string, vscode.FileType][]> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    if (!directoryHandle) {
+    console.log("* readDirectory: ", uri);
+    const result:
+      | [string, vscode.FileType][]
+      | undefined = await vscode.commands.executeCommand(
+      "nativeFS.readDirectory",
+      uri
+    );
+    if (!result) {
       throw vscode.FileSystemError.FileNotFound(uri);
     } else {
-      let i = 0;
-      for (; i < pathArr.length; i++) {
-        directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-      }
-      const result: [string, vscode.FileType][] = [];
-      for await (const entry of directoryHandle.values()) {
-        result.push([
-          entry.name,
-          entry.kind === "directory"
-            ? vscode.FileType.Directory
-            : vscode.FileType.File,
-        ]);
-      }
       return result;
     }
   }
@@ -123,18 +40,16 @@ export class NativeFS implements vscode.FileSystemProvider {
   // --- manage file contents
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    if (!directoryHandle) {
+    console.log("* readFile: ", uri);
+
+    const result: Uint8Array | undefined = await vscode.commands.executeCommand(
+      "nativeFS.readFile",
+      uri
+    );
+    if (!result) {
       throw vscode.FileSystemError.FileNotFound(uri);
     } else {
-      let i = 0;
-      for (; i < pathArr.length - 1; i++) {
-        directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-      }
-      const file = await (
-        await directoryHandle.getFileHandle(pathArr[i])
-      ).getFile();
-      return new Uint8Array(await file.arrayBuffer());
+      return result;
     }
   }
 
@@ -143,42 +58,18 @@ export class NativeFS implements vscode.FileSystemProvider {
     content: Uint8Array,
     options: { create: boolean; overwrite: boolean }
   ): Promise<void> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
-    if (!directoryHandle) {
-      throw vscode.FileSystemError.FileNotFound(uri);
-    } else {
-      let i = 0;
-      for (; i < pathArr.length - 1; i++) {
-        directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i], {
-          create: options.create,
-        });
-      }
+    console.log("* writeFile: ", uri);
 
-      let exists = false;
-      for await (const entry of directoryHandle.values()) {
-        if (entry.name === pathArr[i]) {
-          exists = true;
-          break;
-        }
-      }
-      if (!exists && !options.create) {
-        throw vscode.FileSystemError.FileNotFound(uri);
-      }
-      if (exists && options.create && !options.overwrite) {
-        throw vscode.FileSystemError.FileExists(uri);
-      }
-
-      const fileHandle = await directoryHandle.getFileHandle(pathArr[i], {
-        create: options.create,
+    const { events } = (await vscode.commands.executeCommand(
+      "nativeFS.writeFile",
+      uri,
+      content,
+      options
+    )) || { events: [] };
+    if (events) {
+      (events || []).forEach((event: vscode.FileChangeEvent) => {
+        this._fireSoon(event);
       });
-      if (!exists) {
-        this._fireSoon({ type: vscode.FileChangeType.Created, uri });
-      }
-      const writable = await fileHandle.createWritable();
-      await writable.write(content);
-      await (writable as any).close();
-
-      this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
     }
   }
 
@@ -189,54 +80,51 @@ export class NativeFS implements vscode.FileSystemProvider {
     newUri: vscode.Uri,
     options: { overwrite: boolean }
   ): Promise<void> {
-    const data = await this.readFile(oldUri);
-    await this.writeFile(newUri, data, {
-      create: true,
-      overwrite: options.overwrite,
-    });
-    await this.delete(oldUri, { recursive: true });
-    this._fireSoon(
-      { type: vscode.FileChangeType.Deleted, uri: oldUri },
-      { type: vscode.FileChangeType.Created, uri: newUri }
-    );
+    console.log("* rename: ", oldUri, newUri);
+
+    const { events } = (await vscode.commands.executeCommand(
+      "nativeFS.rename",
+      oldUri,
+      newUri,
+      options
+    )) || { events: [] };
+    if (events) {
+      (events || []).forEach((event: vscode.FileChangeEvent) => {
+        this._fireSoon(event);
+      });
+    }
   }
 
   public async delete(
     uri: vscode.Uri,
     options: { recursive: boolean }
   ): Promise<void> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
-    if (!directoryHandle) {
-      throw vscode.FileSystemError.FileNotFound(uri);
+    console.log("* delete: ", uri);
+
+    const { events } = (await vscode.commands.executeCommand(
+      "nativeFS.delete",
+      uri,
+      options
+    )) || { events: [] };
+    if (events) {
+      (events || []).forEach((event: vscode.FileChangeEvent) => {
+        this._fireSoon(event);
+      });
     }
-    let i = 0;
-    for (; i < pathArr.length - 1; i++) {
-      directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-    }
-    await directoryHandle.removeEntry(pathArr[i], {
-      recursive: options.recursive,
-    });
-    this._fireSoon(
-      // { type: vscode.FileChangeType.Changed, uri: dirname },
-      { uri, type: vscode.FileChangeType.Deleted }
-    );
   }
 
   public async createDirectory(uri: vscode.Uri): Promise<void> {
-    let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
-    if (!directoryHandle) {
-      throw vscode.FileSystemError.FileNotFound(uri);
-    } else {
-      for (let i = 0; i < pathArr.length; i++) {
-        directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i], {
-          create: true,
-        });
-      }
+    console.log("* createDirectory: ", uri);
+
+    const { events } = (await vscode.commands.executeCommand(
+      "nativeFS.createDirectory",
+      uri
+    )) || { events: [] };
+    if (events) {
+      (events || []).forEach((event: vscode.FileChangeEvent) => {
+        this._fireSoon(event);
+      });
     }
-    this._fireSoon(
-      // { type: vscode.FileChangeType.Changed, uri: dirname },
-      { type: vscode.FileChangeType.Created, uri }
-    );
   }
 
   private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
