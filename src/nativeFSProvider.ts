@@ -5,18 +5,25 @@
 
 import * as vscode from "vscode";
 
-export class Provider implements vscode.FileSystemProvider {
+export class NativeFS implements vscode.FileSystemProvider {
   // --- manage file metadata
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     console.log("* stat: ", uri);
-    const result:
-      | vscode.FileStat
-      | undefined = await vscode.commands.executeCommand("nativeFS.stat", uri);
-    if (!result) {
+    try {
+      const result:
+        | vscode.FileStat
+        | undefined = await vscode.commands.executeCommand(
+        "nativeFS.stat",
+        uri
+      );
+      if (!result) {
+        throw vscode.FileSystemError.FileNotFound(uri);
+      } else {
+        return result;
+      }
+    } catch (error) {
       throw vscode.FileSystemError.FileNotFound(uri);
-    } else {
-      return result;
     }
   }
 
@@ -24,16 +31,20 @@ export class Provider implements vscode.FileSystemProvider {
     uri: vscode.Uri
   ): Promise<[string, vscode.FileType][]> {
     console.log("* readDirectory: ", uri);
-    const result:
-      | [string, vscode.FileType][]
-      | undefined = await vscode.commands.executeCommand(
-      "nativeFS.readDirectory",
-      uri
-    );
-    if (!result) {
+    try {
+      const result:
+        | [string, vscode.FileType][]
+        | undefined = await vscode.commands.executeCommand(
+        "nativeFS.readDirectory",
+        uri
+      );
+      if (!result) {
+        throw vscode.FileSystemError.FileNotFound(uri);
+      } else {
+        return result;
+      }
+    } catch (error) {
       throw vscode.FileSystemError.FileNotFound(uri);
-    } else {
-      return result;
     }
   }
 
@@ -42,14 +53,20 @@ export class Provider implements vscode.FileSystemProvider {
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     console.log("* readFile: ", uri);
 
-    const result: Uint8Array | undefined = await vscode.commands.executeCommand(
-      "nativeFS.readFile",
-      uri
-    );
-    if (!result) {
+    try {
+      const result:
+        | Uint8Array
+        | undefined = await vscode.commands.executeCommand(
+        "nativeFS.readFile",
+        uri
+      );
+      if (!result) {
+        throw vscode.FileSystemError.FileNotFound(uri);
+      } else {
+        return result;
+      }
+    } catch (error) {
       throw vscode.FileSystemError.FileNotFound(uri);
-    } else {
-      return result;
     }
   }
 

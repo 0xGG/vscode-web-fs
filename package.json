@@ -11,7 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:native-file-system.openDirectory"
+    "*",
+    "onFileSystem:memfs",
+    "onFileSystem:nativefs"
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/extension.js",
@@ -19,8 +21,14 @@
   "contributes": {
     "commands": [
       {
-        "command": "native-file-system.openDirectory",
-        "title": "Native File System: Open Directory"
+        "command": "nativefs.openDirectory",
+        "title": "Open Directory",
+        "category": "NativeFS"
+      },
+      {
+        "command": "memfs.workspaceInit",
+        "title": "Setup Workspace",
+        "category": "MemFS"
       }
     ]
   },
@@ -46,6 +54,7 @@
     "eslint": "^7.19.0",
     "glob": "^7.1.6",
     "mocha": "^8.2.1",
+    "path-browserify": "^1.0.1",
     "ts-loader": "^8.0.14",
     "typescript": "^4.1.3",
     "vscode-test": "^1.5.0",

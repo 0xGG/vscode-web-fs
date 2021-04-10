@@ -128,7 +128,13 @@ export async function verifyPermission(
   return false;
 }
 
+let registered = false;
 export function registerNativeFS(product: any) {
+  if (registered) {
+    return;
+  } else {
+    registered = true;
+  }
   const nativeFS = new NativeFS();
   console.log("Start registerNativeFS: ", product);
   const commands = product.commands || [];
@@ -221,6 +227,7 @@ export class NativeFS {
 
   public async stat(uri: Uri): Promise<FileStat> {
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
+    console.log("* browser stat: ", directoryHandle, pathArr);
     if (!directoryHandle) {
       throw FileNotFound(uri);
     }
@@ -238,6 +245,7 @@ export class NativeFS {
         mtime: file.lastModified,
         size: file.size,
       };
+      console.log("** browser stat", stat);
       return stat;
     } catch (error) {
       // Check if it's directory
@@ -254,6 +262,7 @@ export class NativeFS {
           mtime: 0, // This is now wrong
           size,
         };
+        console.log("** browser stat", stat);
         return stat;
       } catch (error) {
         throw error;
@@ -285,6 +294,8 @@ export class NativeFS {
 
   public async readFile(uri: Uri): Promise<Uint8Array> {
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
+    console.log("* browser readFile: ", directoryHandle, pathArr);
+
     if (!directoryHandle) {
       throw FileNotFound(uri);
     } else {
@@ -295,6 +306,8 @@ export class NativeFS {
       const file = await (
         await directoryHandle.getFileHandle(pathArr[i])
       ).getFile();
+
+      console.log("** browser readFile", await file.text());
       return new Uint8Array(await file.arrayBuffer());
     }
   }
