@@ -141,7 +141,6 @@ export function registerNativeFS(product: any) {
     registered = true;
   }
   const nativeFS = new NativeFS();
-  console.log("Start registerNativeFS: ", product);
   const commands = product.commands || [];
   commands.push(
     {
@@ -199,7 +198,6 @@ export function registerNativeFS(product: any) {
       },
     }
   );
-  console.log("Finish registerNativeFS: ", product);
 }
 
 export class NativeFS {
@@ -231,9 +229,7 @@ export class NativeFS {
   // --- manage file metadata
 
   public async stat(uri: Uri): Promise<FileStat> {
-    console.log("* browser stat: ", uri);
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    console.log("* broser stat helper: ", [directoryHandle, pathArr]);
     if (!directoryHandle) {
       throw FileNotFound(uri);
     }
@@ -283,8 +279,6 @@ export class NativeFS {
   }
 
   public async readDirectory(uri: Uri): Promise<[string, FileType][]> {
-    console.log("* browser readDirectory: ", uri);
-
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -307,11 +301,7 @@ export class NativeFS {
   // --- manage file contents
 
   public async readFile(uri: Uri): Promise<number[]> {
-    console.log("* browser readFile: ", uri);
-
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    console.log("* browser readFile: ", directoryHandle, pathArr);
-
     if (!directoryHandle) {
       throw FileNotFound(uri);
     } else {
@@ -322,12 +312,6 @@ export class NativeFS {
       const file = await (
         await directoryHandle.getFileHandle(pathArr[i])
       ).getFile();
-
-      console.log("** browser readFile string", await file.text());
-      console.log(
-        "** browser readFile Uint8Array: ",
-        new Uint8Array(await file.arrayBuffer())
-      );
       return Array.from(new Uint8Array(await file.arrayBuffer()));
     }
   }
@@ -337,8 +321,6 @@ export class NativeFS {
     content: number[],
     options: { create: boolean; overwrite: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
-    console.log("* browser writeFile: ", uri);
-
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -388,8 +370,6 @@ export class NativeFS {
     newUri: Uri,
     options: { overwrite: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
-    console.log("* browser rename: ", oldUri, newUri);
-
     const data = await this.readFile(oldUri);
     await this.writeFile(newUri, data, {
       create: true,
@@ -408,8 +388,6 @@ export class NativeFS {
     uri: Uri,
     options: { recursive: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
-    console.log("* browser delete: ", uri);
-
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -432,8 +410,6 @@ export class NativeFS {
   public async createDirectory(
     uri: Uri
   ): Promise<{ events: FileChangeEvent[] }> {
-    console.log("* browser createDirectory: ", uri);
-
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);

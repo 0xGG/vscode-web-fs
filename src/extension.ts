@@ -8,7 +8,6 @@ import { NativeFS } from "./nativeFSProvider";
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  console.log("Activated vscode-native-file-system extension");
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   const nativeFS = new NativeFS();
@@ -41,8 +40,6 @@ export function activate(context: vscode.ExtensionContext) {
         if (!directoryPath) {
           return vscode.window.showErrorMessage(`Failed to open folder`);
         }
-        console.log("nativefs open folder: ", directoryPath);
-
         vscode.workspace.updateWorkspaceFolders(
           vscode.workspace.workspaceFolders
             ? vscode.workspace.workspaceFolders.length
@@ -79,9 +76,6 @@ export function activate(context: vscode.ExtensionContext) {
         uri: vscode.Uri.parse(`memfs:/${name}`),
         name: name,
       });
-      console.log("updateWorkspaceFolders state: ", state);
-
-      console.log("workspace folders", vscode.workspace.workspaceFolders);
     })
   );
 
@@ -94,11 +88,17 @@ export function activate(context: vscode.ExtensionContext) {
       (f) => f.uri.scheme === "memfs" && f.uri.path === "/Welcome"
     )
   ) {
-    console.log("Find /Welcome ");
     const encoder = new TextEncoder();
     memFS.writeFile(
       vscode.Uri.parse(`memfs:/Welcome/README.md`),
-      encoder.encode(`# Welcome!`),
+      encoder.encode(`# Welcome! (Experiment)
+
+Please open **Command Palette** then run: 
+
+* \`NativeFS: Open Folder\` command to open a local folder on your device.  
+* \`MemFS: Open Folder\` command to create/open a temporary folder in memory. 
+
+Emjoy!`),
       {
         create: true,
         overwrite: false,
