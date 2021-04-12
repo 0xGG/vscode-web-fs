@@ -11,23 +11,23 @@
     "Other"
   ],
   "activationEvents": [
-    "*",
     "onFileSystem:memfs",
-    "onFileSystem:nativefs"
+    "onFileSystem:nativefs",
+    "onCommand:memfs.openFolder",
+    "onCommand:nativefs.openFolder"
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/extension.js",
-  "enableProposedApi": true,
   "contributes": {
     "commands": [
       {
-        "command": "nativefs.openDirectory",
-        "title": "Open Directory",
+        "command": "nativefs.openFolder",
+        "title": "Open Folder",
         "category": "NativeFS"
       },
       {
-        "command": "memfs.workspaceInit",
-        "title": "Setup Workspace",
+        "command": "memfs.openFolder",
+        "title": "Open Folder",
         "category": "MemFS"
       }
     ]

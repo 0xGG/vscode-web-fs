@@ -9,7 +9,7 @@ export class NativeFS implements vscode.FileSystemProvider {
   // --- manage file metadata
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    console.log("* stat: ", uri);
+    console.log("* nativefs stat: ", uri);
     try {
       const result:
         | vscode.FileStat
@@ -30,7 +30,7 @@ export class NativeFS implements vscode.FileSystemProvider {
   public async readDirectory(
     uri: vscode.Uri
   ): Promise<[string, vscode.FileType][]> {
-    console.log("* readDirectory: ", uri);
+    console.log("* nativefs readDirectory: ", uri);
     try {
       const result:
         | [string, vscode.FileType][]
@@ -51,19 +51,18 @@ export class NativeFS implements vscode.FileSystemProvider {
   // --- manage file contents
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    console.log("* readFile: ", uri);
+    console.log("* nativefs readFile: ", uri);
 
     try {
-      const result:
-        | Uint8Array
-        | undefined = await vscode.commands.executeCommand(
+      const result: number[] | undefined = await vscode.commands.executeCommand(
         "nativeFS.readFile",
         uri
       );
+      console.log("* nativefs readFile result: ", result);
       if (!result) {
         throw vscode.FileSystemError.FileNotFound(uri);
       } else {
-        return result;
+        return Uint8Array.from(result);
       }
     } catch (error) {
       throw vscode.FileSystemError.FileNotFound(uri);
@@ -75,12 +74,12 @@ export class NativeFS implements vscode.FileSystemProvider {
     content: Uint8Array,
     options: { create: boolean; overwrite: boolean }
   ): Promise<void> {
-    console.log("* writeFile: ", uri);
+    console.log("* nativefs writeFile: ", uri);
 
     const { events } = (await vscode.commands.executeCommand(
       "nativeFS.writeFile",
       uri,
-      content,
+      Array.from(content),
       options
     )) || { events: [] };
     if (events) {
@@ -97,7 +96,7 @@ export class NativeFS implements vscode.FileSystemProvider {
     newUri: vscode.Uri,
     options: { overwrite: boolean }
   ): Promise<void> {
-    console.log("* rename: ", oldUri, newUri);
+    console.log("* nativefs rename: ", oldUri, newUri);
 
     const { events } = (await vscode.commands.executeCommand(
       "nativeFS.rename",
@@ -116,7 +115,7 @@ export class NativeFS implements vscode.FileSystemProvider {
     uri: vscode.Uri,
     options: { recursive: boolean }
   ): Promise<void> {
-    console.log("* delete: ", uri);
+    console.log("* nativefs delete: ", uri);
 
     const { events } = (await vscode.commands.executeCommand(
       "nativeFS.delete",
@@ -131,7 +130,7 @@ export class NativeFS implements vscode.FileSystemProvider {
   }
 
   public async createDirectory(uri: vscode.Uri): Promise<void> {
-    console.log("* createDirectory: ", uri);
+    console.log("* nativefs createDirectory: ", uri);
 
     const { events } = (await vscode.commands.executeCommand(
       "nativeFS.createDirectory",

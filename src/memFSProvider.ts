@@ -51,6 +51,8 @@ export class MemFS implements vscode.FileSystemProvider {
   // --- manage file metadata
 
   stat(uri: vscode.Uri): vscode.FileStat {
+    console.log("* memfs stat: ", uri);
+    console.log("* memfs stat result: ", this._lookup(uri, false));
     return this._lookup(uri, false);
   }
 
@@ -66,6 +68,7 @@ export class MemFS implements vscode.FileSystemProvider {
   // --- manage file contents
 
   readFile(uri: vscode.Uri): Uint8Array {
+    console.log("* memfs readFile: ", uri);
     const data = this._lookupAsFile(uri, false).data;
     if (data) {
       return data;
@@ -78,6 +81,8 @@ export class MemFS implements vscode.FileSystemProvider {
     content: Uint8Array,
     options: { create: boolean; overwrite: boolean }
   ): void {
+    console.log("* memfs writeFile: ", uri);
+
     const basename = path.posix.basename(uri.path);
     const parent = this._lookupParentDirectory(uri);
     let entry = parent.entries.get(basename);
@@ -109,6 +114,8 @@ export class MemFS implements vscode.FileSystemProvider {
     newUri: vscode.Uri,
     options: { overwrite: boolean }
   ): void {
+    console.log("* memfs rename: ", oldUri, newUri);
+
     if (!options.overwrite && this._lookup(newUri, true)) {
       throw vscode.FileSystemError.FileExists(newUri);
     }
@@ -130,6 +137,8 @@ export class MemFS implements vscode.FileSystemProvider {
   }
 
   delete(uri: vscode.Uri): void {
+    console.log("* memfs delete: ", uri);
+
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const basename = path.posix.basename(uri.path);
     const parent = this._lookupAsDirectory(dirname, false);
@@ -146,6 +155,8 @@ export class MemFS implements vscode.FileSystemProvider {
   }
 
   createDirectory(uri: vscode.Uri): void {
+    console.log("* memfs createDirectory: ", uri);
+
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const parent = this._lookupAsDirectory(dirname, false);

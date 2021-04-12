@@ -4,6 +4,7 @@
  */
 
 import { nanoid } from "nanoid";
+import * as path from "path";
 
 /** A few type from vscode */
 enum FileType {
@@ -59,7 +60,11 @@ export interface FileStat {
 }
 
 interface Uri {
+  scheme?: string;
   path: string;
+  authority?: string;
+  query?: string;
+  fragment?: string;
 }
 
 function FileNotFound(uri: Uri) {
@@ -169,7 +174,7 @@ export function registerNativeFS(product: any) {
       id: "nativeFS.writeFile",
       async handler(
         uri: Uri,
-        content: Uint8Array,
+        content: number[],
         options: { create: boolean; overwrite: boolean }
       ) {
         return await nativeFS.writeFile(uri, content, options);
@@ -226,8 +231,9 @@ export class NativeFS {
   // --- manage file metadata
 
   public async stat(uri: Uri): Promise<FileStat> {
+    console.log("* browser stat: ", uri);
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
-    console.log("* browser stat: ", directoryHandle, pathArr);
+    console.log("* broser stat helper: ", [directoryHandle, pathArr]);
     if (!directoryHandle) {
       throw FileNotFound(uri);
     }
@@ -235,6 +241,25 @@ export class NativeFS {
     for (; i < pathArr.length - 1; i++) {
       directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
     }
+
+    const getCurrentDirectoryStat = async () => {
+      let size = 0;
+      for await (const entry of directoryHandle.values()) {
+        size += 1;
+      }
+      const stat: FileStat = {
+        type: FileType.Directory,
+        ctime: 0, // This is now wrong
+        mtime: 0, // This is now wrong
+        size,
+      };
+      return stat;
+    };
+
+    if (!pathArr.length) {
+      return await getCurrentDirectoryStat();
+    }
+
     // Check if it's file
     try {
       const fHandle = await directoryHandle.getFileHandle(pathArr[i]);
@@ -245,25 +270,12 @@ export class NativeFS {
         mtime: file.lastModified,
         size: file.size,
       };
-      console.log("** browser stat", stat);
       return stat;
     } catch (error) {
       // Check if it's directory
       try {
         const dHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-        let size = 0;
-        for await (const entry of directoryHandle.values()) {
-          size += 1;
-        }
-
-        const stat: FileStat = {
-          type: FileType.Directory,
-          ctime: 0, // This is now wrong
-          mtime: 0, // This is now wrong
-          size,
-        };
-        console.log("** browser stat", stat);
-        return stat;
+        return await getCurrentDirectoryStat();
       } catch (error) {
         throw error;
       }
@@ -271,6 +283,8 @@ export class NativeFS {
   }
 
   public async readDirectory(uri: Uri): Promise<[string, FileType][]> {
+    console.log("* browser readDirectory: ", uri);
+
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -292,7 +306,9 @@ export class NativeFS {
 
   // --- manage file contents
 
-  public async readFile(uri: Uri): Promise<Uint8Array> {
+  public async readFile(uri: Uri): Promise<number[]> {
+    console.log("* browser readFile: ", uri);
+
     let [directoryHandle, pathArr] = await this.helper(uri.path, "read");
     console.log("* browser readFile: ", directoryHandle, pathArr);
 
@@ -307,16 +323,22 @@ export class NativeFS {
         await directoryHandle.getFileHandle(pathArr[i])
       ).getFile();
 
-      console.log("** browser readFile", await file.text());
-      return new Uint8Array(await file.arrayBuffer());
+      console.log("** browser readFile string", await file.text());
+      console.log(
+        "** browser readFile Uint8Array: ",
+        new Uint8Array(await file.arrayBuffer())
+      );
+      return Array.from(new Uint8Array(await file.arrayBuffer()));
     }
   }
 
   public async writeFile(
     uri: Uri,
-    content: Uint8Array,
+    content: number[],
     options: { create: boolean; overwrite: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
+    console.log("* browser writeFile: ", uri);
+
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -350,7 +372,7 @@ export class NativeFS {
         events.push({ type: FileChangeType.Created, uri });
       }
       const writable = await fileHandle.createWritable();
-      await writable.write(content);
+      await writable.write(Uint8Array.from(content));
       await (writable as any).close();
       events.push({ type: FileChangeType.Changed, uri });
       return {
@@ -366,6 +388,8 @@ export class NativeFS {
     newUri: Uri,
     options: { overwrite: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
+    console.log("* browser rename: ", oldUri, newUri);
+
     const data = await this.readFile(oldUri);
     await this.writeFile(newUri, data, {
       create: true,
@@ -384,6 +408,8 @@ export class NativeFS {
     uri: Uri,
     options: { recursive: boolean }
   ): Promise<{ events: FileChangeEvent[] }> {
+    console.log("* browser delete: ", uri);
+
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -406,6 +432,8 @@ export class NativeFS {
   public async createDirectory(
     uri: Uri
   ): Promise<{ events: FileChangeEvent[] }> {
+    console.log("* browser createDirectory: ", uri);
+
     let [directoryHandle, pathArr] = await this.helper(uri.path, "readwrite");
     if (!directoryHandle) {
       throw FileNotFound(uri);
@@ -416,9 +444,17 @@ export class NativeFS {
         });
       }
     }
+    const dirname: Uri = {
+      scheme: "nativefs",
+      path: path.posix.dirname(uri.path),
+      authority: "",
+      query: "",
+      fragment: "",
+    };
+
     return {
       events: [
-        // { type: vscode.FileChangeType.Changed, uri: dirname },
+        { type: FileChangeType.Changed, uri: dirname },
         { type: FileChangeType.Created, uri },
       ],
     };
