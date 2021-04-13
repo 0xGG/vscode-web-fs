@@ -1,6 +1,6 @@
-# native-file-system README
+# web-fs README
 
-This is the README for your extension "native-file-system". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "web-fs". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

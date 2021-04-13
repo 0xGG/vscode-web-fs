@@ -28,7 +28,7 @@ Trace:
 
 npm manifest: 
   {
-    "name": "native-file-system",
+    "name": "web-fs",
     "displayName": "Native File System",
     "description": "Add Native File System support to Visual Studio Code",
     "version": "0.0.1",
@@ -39,14 +39,14 @@ npm manifest:
       "Other"
     ],
     "activationEvents": [
-      "onCommand:native-file-system.helloWorld"
+      "onCommand:web-fs.helloWorld"
     ],
     "main": "./dist/extension.js",
     "browser": "./dist/extension.js",
     "contributes": {
       "commands": [
         {
-          "command": "native-file-system.helloWorld",
+          "command": "web-fs.helloWorld",
           "title": "Hello World"
         }
       ]
@@ -79,7 +79,7 @@ npm manifest:
       "webpack-cli": "^4.4.0"
     },
     "repository": {
-      "url": "git@github.com:0xGG/vscode-native-file-system.git"
+      "url": "git@github.com:0xGG/vscode-web-fs.git"
     }
   }
 

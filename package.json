@@ -1,7 +1,7 @@
 {
-  "name": "vscode-native-file-system",
-  "displayName": "VS Code Native File System",
-  "description": "Add Native File System support to Visual Studio Code",
+  "name": "vscode-web-fs",
+  "displayName": "VS Code Web File System",
+  "description": "File System implementation for VSCode Web",
   "version": "0.0.1",
   "publisher": "shd101wyy",
   "engines": {
@@ -62,7 +62,7 @@
     "webpack-cli": "^4.4.0"
   },
   "repository": {
-    "url": "git@github.com:0xGG/vscode-native-file-system.git"
+    "url": "git@github.com:0xGG/vscode-web-fs.git"
   },
   "dependencies": {
     "nanoid": "^3.1.22"
