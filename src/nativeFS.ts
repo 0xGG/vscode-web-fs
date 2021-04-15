@@ -3,6 +3,7 @@
  * Referred from https://github.com/microsoft/vscode-extension-samples/blob/main/fsprovider-sample/src/fileSystemProvider.ts
  */
 
+import Dexie from "dexie";
 import { nanoid } from "nanoid";
 import * as path from "path";
 
@@ -200,18 +201,55 @@ export function registerNativeFS(product: any) {
   );
 }
 
+interface DirectoryHandleEntry {
+  rootDir: string;
+  handle: FileSystemDirectoryHandle;
+}
+
+class DirectoryHandleDatabase extends Dexie {
+  entries: Dexie.Table<DirectoryHandleEntry, number>;
+
+  constructor(databaseName = "nativefs_directory_handles") {
+    super(databaseName);
+    this.version(1).stores({
+      entries: "rootDir,handle",
+    });
+    this.entries = this.table("entries");
+  }
+}
+
 export class NativeFS {
   /**
    * Its key is in format of /$RANDOM_ID/$DIRECTORY_NAME
    */
-  private directoryHandleMap: { [key: string]: FileSystemDirectoryHandle } = {};
+  private directoryHandleMap: {
+    [key: string]: FileSystemDirectoryHandle;
+  } = {};
+
+  private db: DirectoryHandleDatabase;
+
+  constructor() {
+    this.db = new DirectoryHandleDatabase();
+    this.initDatabase();
+  }
+
+  private async initDatabase() {
+    await this.db.open();
+    this.db.entries.each((entry) => {
+      this.directoryHandleMap[entry.rootDir] = entry.handle;
+    });
+  }
 
   // --- attach local directory
   public async attachDirectory(
     directoryHandle: FileSystemDirectoryHandle
   ): Promise<string> {
-    const rootDir = "/" + nanoid(8) + "/" + directoryHandle.name + "/";
+    const rootDir = "/nativefs-" + nanoid(8) + "/" + directoryHandle.name + "/";
     this.directoryHandleMap[rootDir] = directoryHandle;
+    await this.db.entries.put({
+      rootDir,
+      handle: directoryHandle,
+    });
     return rootDir;
   }
 
@@ -238,7 +276,9 @@ export class NativeFS {
       directoryHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
     }
 
-    const getCurrentDirectoryStat = async () => {
+    const getDirectoryHandleStat = async (
+      directoryHandle: FileSystemDirectoryHandle
+    ) => {
       let size = 0;
       for await (const entry of directoryHandle.values()) {
         size += 1;
@@ -253,7 +293,7 @@ export class NativeFS {
     };
 
     if (!pathArr.length) {
-      return await getCurrentDirectoryStat();
+      return await getDirectoryHandleStat(directoryHandle);
     }
 
     // Check if it's file
@@ -271,7 +311,7 @@ export class NativeFS {
       // Check if it's directory
       try {
         const dHandle = await directoryHandle.getDirectoryHandle(pathArr[i]);
-        return await getCurrentDirectoryStat();
+        return await getDirectoryHandleStat(dHandle);
       } catch (error) {
         throw error;
       }
@@ -399,9 +439,19 @@ export class NativeFS {
     await directoryHandle.removeEntry(pathArr[i], {
       recursive: options.recursive,
     });
+    const dirname: Uri = {
+      scheme: "nativefs",
+      path: path.posix.dirname(uri.path),
+      authority: "",
+      query: "",
+      fragment: "",
+    };
     return {
       events: [
-        // { type: vscode.FileChangeType.Changed, uri: dirname },
+        {
+          type: FileChangeType.Changed,
+          uri: dirname,
+        },
         { uri, type: FileChangeType.Deleted },
       ],
     };

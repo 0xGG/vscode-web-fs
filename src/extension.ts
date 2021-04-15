@@ -7,7 +7,7 @@ import { NativeFS } from "./nativeFSProvider";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   const nativeFS = new NativeFS();
@@ -25,6 +25,51 @@ export function activate(context: vscode.ExtensionContext) {
       isReadonly: false,
     })
   );
+
+  const encoder = new TextEncoder();
+
+  // Always create memfs:/Welcome directory
+  const welcomeDirectoryUri = vscode.Uri.parse(`memfs:/Welcome/`);
+  const welcomeREADMEUri = vscode.Uri.parse(`memfs:/Welcome/README.md`);
+  const workspaceFileUri = vscode.Uri.parse(`memfs:/web-fs.code-workspace`);
+  try {
+    await memFS.createDirectory(welcomeDirectoryUri);
+  } catch (_) {}
+
+  // Add README.md to /Welcome
+  if (!(await memFS.exists(welcomeREADMEUri))) {
+    await memFS.writeFile(
+      welcomeREADMEUri,
+      encoder.encode(
+        `# Welcome! (Experiment)
+Please open **Command Palette** then run: 
+
+* \`NativeFS: Open Folder\` command to open a local folder on your device.  
+* \`MemFS: Open Folder\` command to create/open a temporary folder in memory. 
+
+Enjoy!`
+      ),
+      {
+        create: true,
+        overwrite: true,
+      }
+    );
+  }
+  // Initialize the workspaceFile
+  if (!(await memFS.exists(workspaceFileUri))) {
+    await memFS.writeFile(
+      workspaceFileUri,
+      encoder.encode(
+        `{
+        "folders": ${JSON.stringify([welcomeDirectoryUri])}
+      }`
+      ),
+      {
+        create: true,
+        overwrite: true,
+      }
+    );
+  }
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
@@ -69,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage(`Empty folder name is not supported`);
       }
       try {
-        memFS.createDirectory(vscode.Uri.parse(`memfs:/${name}`));
+        await memFS.createDirectory(vscode.Uri.parse(`memfs:/${name}`));
       } catch (_) {}
 
       const state = vscode.workspace.updateWorkspaceFolders(0, 0, {
@@ -78,33 +123,6 @@ export function activate(context: vscode.ExtensionContext) {
       });
     })
   );
-
-  // Always create memfs:/Welcome directory
-  try {
-    memFS.createDirectory(vscode.Uri.parse(`memfs:/Welcome`));
-  } catch (_) {}
-  if (
-    vscode.workspace.workspaceFolders?.some(
-      (f) => f.uri.scheme === "memfs" && f.uri.path === "/Welcome"
-    )
-  ) {
-    const encoder = new TextEncoder();
-    memFS.writeFile(
-      vscode.Uri.parse(`memfs:/Welcome/README.md`),
-      encoder.encode(`# Welcome! (Experiment)
-
-Please open **Command Palette** then run: 
-
-* \`NativeFS: Open Folder\` command to open a local folder on your device.  
-* \`MemFS: Open Folder\` command to create/open a temporary folder in memory. 
-
-Emjoy!`),
-      {
-        create: true,
-        overwrite: false,
-      }
-    );
-  }
 }
 
 // this method is called when your extension is deactivated
