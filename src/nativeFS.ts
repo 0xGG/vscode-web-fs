@@ -165,6 +165,12 @@ export function registerNativeFS(product: any) {
       },
     },
     {
+      id: "nativeFS.readRootDirectories",
+      async handler() {
+        return await nativeFS.readRootDirectories();
+      },
+    },
+    {
       id: "nativeFS.readFile",
       async handler(uri: Uri) {
         return await nativeFS.readFile(uri);
@@ -336,6 +342,14 @@ export class NativeFS {
       }
       return result;
     }
+  }
+
+  public async readRootDirectories(): Promise<string[]> {
+    const result: string[] = [];
+    for (const rootDir in this.directoryHandleMap) {
+      result.push(rootDir);
+    }
+    return result;
   }
 
   // --- manage file contents

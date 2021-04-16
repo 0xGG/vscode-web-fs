@@ -3,8 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import GlobToRegExp = require("glob-to-regexp");
 import * as path from "path";
 import * as vscode from "vscode";
+import { convertSimple2RegExpPattern } from "./util";
 const LightningFS = require("@isomorphic-git/lightning-fs");
 
 interface FSStat {
@@ -17,13 +19,17 @@ interface FSStat {
   isSymbolicLink: () => boolean;
 }
 
-export class MemFS implements vscode.FileSystemProvider {
+export class MemFS
+  implements vscode.FileSystemProvider, vscode.FileSearchProvider {
+  static scheme = "memfs";
+
   private pfs: any;
   constructor() {
     const fs: any = new LightningFS("fs");
     this.pfs = fs.promises;
   }
 
+  // * - FileSystemProvider
   // --- manage file metadata
 
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
@@ -269,5 +275,60 @@ export class MemFS implements vscode.FileSystemProvider {
       this._emitter.fire(this._bufferedEvents);
       this._bufferedEvents.length = 0;
     }, 5);
+  }
+
+  // *- FileSearchProvider
+  public async provideFileSearchResults(
+    query: vscode.FileSearchQuery,
+    options: vscode.FileSearchOptions,
+    token: vscode.CancellationToken
+  ): Promise<vscode.Uri[]> {
+    const files = await this._getAllFiles(
+      options.folder,
+      options.excludes.map((e) => GlobToRegExp(e))
+    );
+    const result: vscode.Uri[] = [];
+    const pattern = query.pattern
+      ? new RegExp(convertSimple2RegExpPattern(query.pattern), "i")
+      : null;
+    for (const file of files) {
+      if (!pattern || pattern.exec(file.path)) {
+        result.push(file);
+      }
+    }
+    return result;
+  }
+
+  private async _getAllFiles(
+    directoryPath: vscode.Uri = vscode.Uri.parse(`${MemFS.scheme}:/`),
+    excludes: RegExp[]
+  ): Promise<vscode.Uri[]> {
+    let result: vscode.Uri[] = [];
+    const entries = await this.readDirectory(directoryPath);
+    const promises: Promise<vscode.Uri[]>[] = [];
+    for (let i = 0; i < entries.length; i++) {
+      const [fileName, fileType] = entries[i];
+      const filePath = path.join(directoryPath.path, fileName);
+      if (excludes.some((e) => e.exec(filePath))) {
+        continue;
+      }
+      if (fileType === vscode.FileType.File) {
+        result.push(vscode.Uri.parse(`${MemFS.scheme}:${filePath}`));
+      } else if (fileType === vscode.FileType.Directory) {
+        promises.push(
+          this._getAllFiles(
+            vscode.Uri.parse(`${MemFS.scheme}:${filePath}`),
+            excludes
+          )
+        );
+      }
+    }
+    if (promises.length) {
+      const resultList = await Promise.all(promises);
+      result = result.concat(
+        resultList.reduce((acc, val) => acc.concat(val), [])
+      );
+    }
+    return result;
   }
 }

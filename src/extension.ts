@@ -8,30 +8,41 @@ import { NativeFS } from "./nativeFSProvider";
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
+  // Register providers
+  // * NativeFS
   const nativeFS = new NativeFS();
   context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider("nativefs", nativeFS, {
+    vscode.workspace.registerFileSystemProvider(NativeFS.scheme, nativeFS, {
       isCaseSensitive: true,
       isReadonly: false,
     })
   );
+  context.subscriptions.push(
+    vscode.workspace.registerFileSearchProvider(NativeFS.scheme, nativeFS)
+  );
 
+  // * MemFS
   const memFS = new MemFS();
   context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider("memfs", memFS, {
+    vscode.workspace.registerFileSystemProvider(MemFS.scheme, memFS, {
       isCaseSensitive: true,
       isReadonly: false,
     })
+  );
+  context.subscriptions.push(
+    vscode.workspace.registerFileSearchProvider(MemFS.scheme, memFS)
   );
 
   const encoder = new TextEncoder();
 
   // Always create memfs:/Welcome directory
-  const welcomeDirectoryUri = vscode.Uri.parse(`memfs:/Welcome/`);
-  const welcomeREADMEUri = vscode.Uri.parse(`memfs:/Welcome/README.md`);
-  const workspaceFileUri = vscode.Uri.parse(`memfs:/web-fs.code-workspace`);
+  const welcomeDirectoryUri = vscode.Uri.parse(`${MemFS.scheme}:/Welcome/`);
+  const welcomeREADMEUri = vscode.Uri.parse(
+    `${MemFS.scheme}:/Welcome/README.md`
+  );
+  const workspaceFileUri = vscode.Uri.parse(
+    `${MemFS.scheme}:/web-fs.code-workspace`
+  );
   try {
     await memFS.createDirectory(welcomeDirectoryUri);
   } catch (_) {}
@@ -114,11 +125,13 @@ Enjoy!`
         vscode.window.showErrorMessage(`Empty folder name is not supported`);
       }
       try {
-        await memFS.createDirectory(vscode.Uri.parse(`memfs:/${name}`));
+        await memFS.createDirectory(
+          vscode.Uri.parse(`${MemFS.scheme}:/${name}`)
+        );
       } catch (_) {}
 
       const state = vscode.workspace.updateWorkspaceFolders(0, 0, {
-        uri: vscode.Uri.parse(`memfs:/${name}`),
+        uri: vscode.Uri.parse(`${MemFS.scheme}:/${name}`),
         name: name,
       });
     })

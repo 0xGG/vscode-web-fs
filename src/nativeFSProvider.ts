@@ -3,9 +3,15 @@
  * Referred from https://github.com/microsoft/vscode-extension-samples/blob/main/fsprovider-sample/src/fileSystemProvider.ts
  */
 
+import GlobToRegExp = require("glob-to-regexp");
+import * as path from "path";
 import * as vscode from "vscode";
+import { convertSimple2RegExpPattern } from "./util";
 
-export class NativeFS implements vscode.FileSystemProvider {
+export class NativeFS
+  implements vscode.FileSystemProvider, vscode.FileSearchProvider {
+  static scheme = "nativefs";
+  // *-- FileSystemProvider
   // --- manage file metadata
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
@@ -43,6 +49,21 @@ export class NativeFS implements vscode.FileSystemProvider {
       }
     } catch (error) {
       throw vscode.FileSystemError.FileNotFound(uri);
+    }
+  }
+
+  public async readRootDirectories(): Promise<string[]> {
+    try {
+      const result: string[] | undefined = await vscode.commands.executeCommand(
+        "nativeFS.readRootDirectories"
+      );
+      if (!result) {
+        throw vscode.FileSystemError.Unavailable;
+      } else {
+        return result;
+      }
+    } catch (error) {
+      throw vscode.FileSystemError.Unavailable;
     }
   }
 
@@ -153,5 +174,63 @@ export class NativeFS implements vscode.FileSystemProvider {
       this._emitter.fire(this._bufferedEvents);
       this._bufferedEvents.length = 0;
     }, 5);
+  }
+
+  // *- FileSearchProvider
+  public async provideFileSearchResults(
+    query: vscode.FileSearchQuery,
+    options: vscode.FileSearchOptions,
+    token: vscode.CancellationToken
+  ): Promise<vscode.Uri[]> {
+    const files = await this._getAllFiles(
+      options.folder,
+      options.excludes.map((e) => GlobToRegExp(e))
+    );
+    const result: vscode.Uri[] = [];
+    const pattern = query.pattern
+      ? new RegExp(convertSimple2RegExpPattern(query.pattern), "i")
+      : null;
+    for (const file of files) {
+      if (!pattern || pattern.exec(file.path)) {
+        result.push(file);
+      }
+    }
+    return result;
+  }
+
+  private async _getAllFiles(
+    directoryPath: vscode.Uri = vscode.Uri.parse(`${NativeFS.scheme}:/`),
+    excludes: RegExp[]
+  ): Promise<vscode.Uri[]> {
+    let result: vscode.Uri[] = [];
+    let entries: [string, vscode.FileType][] = [];
+    if (directoryPath.path === "/") {
+      const rootDirectories = await this.readRootDirectories();
+      rootDirectories.forEach((rootDir) => {
+        entries.push([rootDir, vscode.FileType.Directory]);
+      });
+    } else {
+      entries = await this.readDirectory(directoryPath);
+    }
+    const promises: Promise<vscode.Uri[]>[] = [];
+    for (let i = 0; i < entries.length; i++) {
+      const [fileName, fileType] = entries[i];
+      const filePath = path.join(directoryPath.path, fileName);
+      if (excludes.some((e) => e.exec(filePath))) {
+        continue;
+      }
+      if (fileType === vscode.FileType.File) {
+        result.push(vscode.Uri.parse(filePath));
+      } else if (fileType === vscode.FileType.Directory) {
+        promises.push(this._getAllFiles(vscode.Uri.parse(filePath), excludes));
+      }
+    }
+    if (promises.length) {
+      const resultList = await Promise.all(promises);
+      result = result.concat(
+        resultList.reduce((acc, val) => acc.concat(val), [])
+      );
+    }
+    return result;
   }
 }
