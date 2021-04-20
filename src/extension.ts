@@ -20,6 +20,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.registerFileSearchProvider(NativeFS.scheme, nativeFS)
   );
+  context.subscriptions.push(
+    vscode.workspace.registerTextSearchProvider(NativeFS.scheme, nativeFS)
+  );
 
   // * MemFS
   const memFS = new MemFS();
@@ -31,6 +34,9 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.workspace.registerFileSearchProvider(MemFS.scheme, memFS)
+  );
+  context.subscriptions.push(
+    vscode.workspace.registerTextSearchProvider(MemFS.scheme, memFS)
   );
 
   const encoder = new TextEncoder();

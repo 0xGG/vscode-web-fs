@@ -6,7 +6,7 @@
 import GlobToRegExp = require("glob-to-regexp");
 import * as path from "path";
 import * as vscode from "vscode";
-import { convertSimple2RegExpPattern } from "./util";
+import { convertSimple2RegExpPattern, getAllFiles, searchText } from "./util";
 const LightningFS = require("@isomorphic-git/lightning-fs");
 
 interface FSStat {
@@ -20,7 +20,10 @@ interface FSStat {
 }
 
 export class MemFS
-  implements vscode.FileSystemProvider, vscode.FileSearchProvider {
+  implements
+    vscode.FileSystemProvider,
+    vscode.FileSearchProvider,
+    vscode.TextSearchProvider {
   static scheme = "memfs";
 
   private pfs: any;
@@ -283,7 +286,9 @@ export class MemFS
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): Promise<vscode.Uri[]> {
-    const files = await this._getAllFiles(
+    const files = await getAllFiles(
+      this,
+      MemFS.scheme,
       options.folder,
       options.excludes.map((e) => GlobToRegExp(e))
     );
@@ -299,36 +304,26 @@ export class MemFS
     return result;
   }
 
-  private async _getAllFiles(
-    directoryPath: vscode.Uri = vscode.Uri.parse(`${MemFS.scheme}:/`),
-    excludes: RegExp[]
-  ): Promise<vscode.Uri[]> {
-    let result: vscode.Uri[] = [];
-    const entries = await this.readDirectory(directoryPath);
-    const promises: Promise<vscode.Uri[]>[] = [];
-    for (let i = 0; i < entries.length; i++) {
-      const [fileName, fileType] = entries[i];
-      const filePath = path.join(directoryPath.path, fileName);
-      if (excludes.some((e) => e.exec(filePath))) {
-        continue;
-      }
-      if (fileType === vscode.FileType.File) {
-        result.push(vscode.Uri.parse(`${MemFS.scheme}:${filePath}`));
-      } else if (fileType === vscode.FileType.Directory) {
-        promises.push(
-          this._getAllFiles(
-            vscode.Uri.parse(`${MemFS.scheme}:${filePath}`),
-            excludes
-          )
-        );
-      }
-    }
-    if (promises.length) {
-      const resultList = await Promise.all(promises);
-      result = result.concat(
-        resultList.reduce((acc, val) => acc.concat(val), [])
-      );
-    }
+  //  *- TextSearchProvider
+  public async provideTextSearchResults(
+    query: vscode.TextSearchQuery,
+    options: vscode.TextSearchOptions,
+    progress: vscode.Progress<vscode.TextSearchResult>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.TextSearchComplete> {
+    const result: vscode.TextSearchComplete = { limitHit: false };
+    const includes = options.includes.map((e) => GlobToRegExp(e));
+    const excludes = options.excludes.map((e) => GlobToRegExp(e));
+    await searchText(
+      this,
+      MemFS.scheme,
+      options.folder,
+      query,
+      includes,
+      excludes,
+      progress,
+      _token
+    );
     return result;
   }
 }
