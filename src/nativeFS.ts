@@ -250,7 +250,8 @@ export class NativeFS {
   public async attachDirectory(
     directoryHandle: FileSystemDirectoryHandle
   ): Promise<string> {
-    const rootDir = "/nativefs-" + nanoid(8) + "/" + directoryHandle.name + "/";
+    const rootDir =
+      "/$nativefs-" + nanoid(8) + "/" + directoryHandle.name + "/";
     this.directoryHandleMap[rootDir] = directoryHandle;
     await this.db.entries.put({
       rootDir,

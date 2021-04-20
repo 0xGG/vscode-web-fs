@@ -184,7 +184,7 @@ async function isFileBinary(
   fs: vscode.FileSystemProvider,
   filePath: vscode.Uri
 ): Promise<{ binary: boolean; content: Uint8Array }> {
-  if (isBinary(filePath.path)) {
+  if (isBinary(filePath.path) || filePath.path.match(/\.(asar)$/)) {
     return { binary: true, content: await fs.readFile(filePath) };
   } else {
     // Check content

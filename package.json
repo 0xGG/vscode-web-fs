@@ -2,7 +2,7 @@
   "name": "vscode-web-fs",
   "displayName": "VS Code Web File System",
   "description": "File System implementation for VSCode Web",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "shd101wyy",
   "license": "MIT",
   "enableProposedApi": true,
