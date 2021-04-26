@@ -4,6 +4,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { MemFS } from "./memFSProvider";
 import { NativeFS } from "./nativeFSProvider";
+import { nativeFSPrefix } from "./nativeFSUtil";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -224,6 +225,8 @@ Enjoy!`
         throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
       }
     },
+
+    nativeFSPrefix: nativeFSPrefix,
   };
 }
 

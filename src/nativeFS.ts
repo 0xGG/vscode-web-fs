@@ -6,6 +6,7 @@
 import Dexie from "dexie";
 import { nanoid } from "nanoid";
 import * as path from "path";
+import { nativeFSPrefix } from "./nativeFSUtil";
 
 /** A few type from vscode */
 enum FileType {
@@ -251,7 +252,7 @@ export class NativeFS {
     directoryHandle: FileSystemDirectoryHandle
   ): Promise<string> {
     const rootDir =
-      "/$nativefs-" + nanoid(8) + "/" + directoryHandle.name + "/";
+      nativeFSPrefix + nanoid(8) + "/" + directoryHandle.name + "/";
     this.directoryHandleMap[rootDir] = directoryHandle;
     await this.db.entries.put({
       rootDir,
