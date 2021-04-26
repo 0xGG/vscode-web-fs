@@ -142,6 +142,89 @@ Enjoy!`
       });
     })
   );
+
+  return {
+    async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.stat(uri);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.stat(uri);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+
+    async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.readDirectory(uri);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.readDirectory(uri);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+
+    async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.readFile(uri);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.readFile(uri);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+
+    async writeFile(
+      uri: vscode.Uri,
+      content: Uint8Array,
+      options: { create: boolean; overwrite: boolean }
+    ): Promise<void> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.writeFile(uri, content, options);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.writeFile(uri, content, options);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+
+    async rename(
+      oldUri: vscode.Uri,
+      newUri: vscode.Uri,
+      options: { overwrite: boolean }
+    ): Promise<void> {
+      if (oldUri.scheme === MemFS.scheme) {
+        return await memFS.rename(oldUri, newUri, options);
+      } else if (oldUri.scheme === NativeFS.scheme) {
+        return await nativeFS.rename(oldUri, newUri, options);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${oldUri.scheme}`);
+      }
+    },
+
+    async delete(
+      uri: vscode.Uri,
+      options: { recursive: boolean }
+    ): Promise<void> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.delete(uri);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.delete(uri, options);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+
+    async createDirectory(uri: vscode.Uri): Promise<void> {
+      if (uri.scheme === MemFS.scheme) {
+        return await memFS.createDirectory(uri);
+      } else if (uri.scheme === NativeFS.scheme) {
+        return await nativeFS.createDirectory(uri);
+      } else {
+        throw new Error(`vscode-web-fs: Invalid scheme ${uri.scheme}`);
+      }
+    },
+  };
 }
 
 // this method is called when your extension is deactivated

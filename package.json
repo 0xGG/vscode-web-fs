@@ -3,7 +3,7 @@
   "displayName": "VS Code Web File System",
   "description": "File System implementation for VSCode Web",
   "version": "0.0.5",
-  "publisher": "shd101wyy",
+  "publisher": "0xgg",
   "license": "MIT",
   "enableProposedApi": true,
   "engines": {
